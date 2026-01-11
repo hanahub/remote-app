@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<body>
+<h2>HOST</h2>
+<video autoplay muted></video>
+
+<script>
+const ws = new WebSocket("ws://localhost:3000");
+const pc = new RTCPeerConnection();
+const video = document.querySelector("video");
+
+ws.onopen = () => ws.send(JSON.stringify({ role: "host" }));
+
+navigator.mediaDevices.getDisplayMedia({ video: true })
+.then(stream => {
+  video.srcObject = stream;
+  stream.getTracks().forEach(t => pc.addTrack(t, stream));
+});
+
+pc.onicecandidate = e => {
+  if (e.candidate) ws.send(JSON.stringify({ candidate: e.candidate }));
+};
+
+ws.onmessage = async e => {
+  const msg = JSON.parse(e.data);
+  if (msg.answer) {
+    await pc.setRemoteDescription(msg.answer);
+  }
+};
+
+(async () => {
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+  ws.send(JSON.stringify({ offer }));
+})();
+</script>
+</body>
+</html>

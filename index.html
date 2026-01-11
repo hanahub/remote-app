@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Simple Web Search Engine</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 40px;
+      background: #f7f7f7;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      font-size: 18px;
+      margin-bottom: 20px;
+    }
+
+    .result {
+      background: #fff;
+      padding: 15px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+    }
+
+    .result a {
+      font-size: 18px;
+      color: #1a0dab;
+      text-decoration: none;
+    }
+
+    .result p {
+      margin: 5px 0 0;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Simple Search Engine</h1>
+  <input
+    type="text"
+    id="searchInput"
+    placeholder="Type keyword and press Enter"
+  />
+
+  <div id="results"></div>
+
+  <script>
+    const input = document.getElementById("searchInput");
+    const resultsDiv = document.getElementById("results");
+
+    input.addEventListener("keypress", function (e) {
+      if (e.key === "Enter") {
+        search(input.value);
+      }
+    });
+
+    async function search(query) {
+      if (!query) return;
+
+      resultsDiv.innerHTML = "Searching...";
+
+      const url = `https://en.wikipedia.org/w/api.php?origin=*&action=query&list=search&srsearch=${encodeURIComponent(
+        query
+      )}&format=json`;
+
+      const response = await fetch(url);
+      const data = await response.json();
+
+      displayResults(data.query.search);
+    }
+
+    function displayResults(results) {
+      resultsDiv.innerHTML = "";
+
+      if (results.length === 0) {
+        resultsDiv.innerHTML = "No results found.";
+        return;
+      }
+
+      results.forEach(item => {
+        const div = document.createElement("div");
+        div.className = "result";
+
+        div.innerHTML = `
+          <a href="https://en.wikipedia.org/wiki/${encodeURIComponent(item.title)}" target="_blank">
+            ${item.title}
+          </a>
+          <p>${item.snippet}...</p>
+        `;
+
+        resultsDiv.appendChild(div);
+      });
+    }
+  </script>
+
+</body>
+</html>

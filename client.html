@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Remote Client</title>
+  <style>
+    body { margin: 0; background: black; }
+    video { width: 100vw; height: 100vh; object-fit: contain; }
+  </style>
+</head>
+<body>
+
+<video id="remoteVideo" autoplay playsinline muted></video>
+
+<script>
+const video = document.getElementById("remoteVideo");
+
+const ws = new WebSocket("ws://localhost:3000");
+const pc = new RTCPeerConnection();
+
+ws.addEventListener('open', () => {
+  console.log('WebSocket connected');
+  ws.send(JSON.stringify({ role: 'client' }));
+});
+
+ws.addEventListener('close', () => console.log('WebSocket closed'));
+ws.addEventListener('error', e => console.error('WebSocket error', e));
+
+pc.ontrack = event => {
+  console.log("Receiving stream");
+  video.srcObject = event.streams[0];
+};
+
+ws.onmessage = async event => {
+  let msg;
+  try { msg = JSON.parse(event.data); } catch (err) { console.warn('Invalid JSON', event.data); return; }
+  console.log('WS message', msg);
+
+  if (msg.offer) {
+    await pc.setRemoteDescription(msg.offer);
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    ws.send(JSON.stringify({ answer }));
+  }
+
+  if (msg.candidate) {
+    await pc.addIceCandidate(msg.candidate);
+  }
+};
+
+pc.onicecandidate = e => {
+  if (e.candidate) {
+    ws.send(JSON.stringify({ candidate: e.candidate }));
+  }
+};
+</script>
+
+</body>
+</html>
